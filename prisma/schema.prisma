@@ -1,0 +1,48 @@
+// StellarLend backend — Prisma schema.
+//
+// This is an intentionally minimal starting point, not a finished data model.
+// It exists so the project has a real, migratable schema and so later issues
+// (auth/sessions, indexer events, account profiles, etc.) have a place to add
+// models rather than starting from a blank file. Expect it to change a lot.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A user of the protocol, identified by their Stellar account address.
+/// Placeholder model — will likely grow auth/profile-related fields (or those
+/// may move into dedicated models, e.g. AccountProfile) as auth issues land.
+model Account {
+  id             String   @id @default(cuid())
+  stellarAddress String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  positions Position[]
+
+  @@map("accounts")
+}
+
+/// A single account's lending-protocol position for one asset/reserve
+/// (collateral supplied and debt borrowed). Placeholder model — real fields
+/// (health factor, interest accrual, liquidation state, etc.) land with the
+/// lending API and indexer issues.
+model Position {
+  id               String   @id @default(cuid())
+  accountId        String
+  account          Account  @relation(fields: [accountId], references: [id])
+  asset            String
+  collateralAmount Decimal  @default(0) @db.Decimal(38, 18)
+  debtAmount       Decimal  @default(0) @db.Decimal(38, 18)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([accountId, asset])
+  @@index([asset])
+  @@map("positions")
+}
